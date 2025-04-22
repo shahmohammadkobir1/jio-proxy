@@ -1,0 +1,43 @@
+name: VPN Reverse Proxy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  vpn-proxy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 250
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y openvpn nodejs npm git
+          sudo npm install -g http-server
+
+      - name: Connect to VPN
+        run: |
+          echo "Connecting to VPN..."
+          sudo openvpn --config "JioHotstar - Pro Fast.ovpn" --auth-user-pass vpn-credentials.txt --daemon
+          sleep 20
+
+      - name: Generate Channels and Start Server
+        run: |
+          mkdir -p public/watch
+          touch public/stream-links.txt
+          echo '<html><body><h1>Channels Placeholder</h1></body></html>' > public/channels.html
+          http-server public -p 8080 &
+
+      - name: Commit and Push
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add public/
+          git commit -m "Add stream files"
+          git push
+
+      - name: Keep Runner Alive
+        run: sleep 14400
